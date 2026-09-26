@@ -1,0 +1,770 @@
+<title>Mako Materia HUD</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Saira+Condensed:wght@500;600;700&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500;600&display=swap">
+
+<style>
+  /* ---- tokens: complete light palette on bare :root ---- */
+  :root {
+    --ground:      #e9ecee;
+    --surface:     #f7f8f9;
+    --surface-2:   #eef1f3;
+    --ink:         #16191c;
+    --ink-soft:    #5a646b;
+    --ink-faint:   #7d878d;
+    --rule:        #c8d0d5;
+    --rule-soft:   #dde3e6;
+    --accent:      #a75f00;
+    --accent-soft: #e8a33d;
+    --accent-wash: #f6e6cb;
+    --ok:          #2c6a4a;
+    --ok-wash:     #dcebe2;
+    --warn:        #8f5a10;
+    --warn-wash:   #f4e6cf;
+    --panel-ground:#141a1e;
+    --panel-ink:   #d8e2e4;
+    --panel-dim:   #6f8087;
+    --panel-rule:  #29343a;
+    --panel-accent:#e8a33d;
+  }
+
+  /* ---- second theme: tokens only, guarded so an explicit light choice wins ---- */
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --ground:      #12161a;
+      --surface:     #191f24;
+      --surface-2:   #1e262c;
+      --ink:         #e4eaec;
+      --ink-soft:    #9aa7ad;
+      --ink-faint:   #78858b;
+      --rule:        #2d363d;
+      --rule-soft:   #232c32;
+      --accent:      #e8a33d;
+      --accent-soft: #f0bd6c;
+      --accent-wash: #33280f;
+      --ok:          #6fbf8f;
+      --ok-wash:     #16291f;
+      --warn:        #e0a552;
+      --warn-wash:   #2e2410;
+      --panel-ground:#0e1316;
+      --panel-ink:   #d8e2e4;
+      --panel-dim:   #6f8087;
+      --panel-rule:  #263035;
+      --panel-accent:#e8a33d;
+    }
+  }
+  :root[data-theme="dark"] {
+    --ground:      #12161a;
+    --surface:     #191f24;
+    --surface-2:   #1e262c;
+    --ink:         #e4eaec;
+    --ink-soft:    #9aa7ad;
+    --ink-faint:   #78858b;
+    --rule:        #2d363d;
+    --rule-soft:   #232c32;
+    --accent:      #e8a33d;
+    --accent-soft: #f0bd6c;
+    --accent-wash: #33280f;
+    --ok:          #6fbf8f;
+    --ok-wash:     #16291f;
+    --warn:        #e0a552;
+    --warn-wash:   #2e2410;
+    --panel-ground:#0e1316;
+    --panel-ink:   #d8e2e4;
+    --panel-dim:   #6f8087;
+    --panel-rule:  #263035;
+    --panel-accent:#e8a33d;
+  }
+
+  * { box-sizing: border-box; }
+
+  body {
+    margin: 0;
+    background: var(--ground);
+    color: var(--ink);
+    font-family: "IBM Plex Sans", system-ui, -apple-system, "Segoe UI", sans-serif;
+    font-size: 16px;
+    line-height: 1.65;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  .wrap {
+    max-width: 1120px;
+    margin: 0 auto;
+    padding: 0 24px 96px;
+  }
+
+  /* ---------- masthead ---------- */
+  .masthead {
+    border-bottom: 2px solid var(--ink);
+    padding: 40px 0 20px;
+    margin-bottom: 8px;
+  }
+  .eyebrow {
+    font-family: "IBM Plex Mono", ui-monospace, monospace;
+    font-size: 11.5px;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: var(--accent);
+    margin: 0 0 14px;
+  }
+  h1 {
+    font-family: "Saira Condensed", "Arial Narrow", sans-serif;
+    font-weight: 700;
+    font-size: clamp(38px, 6vw, 62px);
+    line-height: 1.02;
+    letter-spacing: -0.01em;
+    margin: 0 0 14px;
+    text-wrap: balance;
+  }
+  .standfirst {
+    max-width: 60ch;
+    font-size: 17px;
+    color: var(--ink-soft);
+    margin: 0 0 26px;
+  }
+  .meta {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0 34px;
+    padding-top: 18px;
+    border-top: 1px solid var(--rule);
+  }
+  .meta div { padding-bottom: 8px; }
+  .meta dt {
+    font-family: "IBM Plex Mono", ui-monospace, monospace;
+    font-size: 10.5px;
+    letter-spacing: 0.13em;
+    text-transform: uppercase;
+    color: var(--ink-faint);
+    margin-bottom: 3px;
+  }
+  .meta dd {
+    margin: 0;
+    font-size: 14px;
+    font-family: "IBM Plex Mono", ui-monospace, monospace;
+  }
+
+  /* ---------- shell: sticky toc + column ---------- */
+  .shell {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 0 48px;
+    margin-top: 40px;
+  }
+  @media (min-width: 940px) {
+    .shell { grid-template-columns: 208px 1fr; }
+  }
+  .toc {
+    display: none;
+  }
+  @media (min-width: 940px) {
+    .toc {
+      display: block;
+      align-self: start;
+      position: sticky;
+      top: 24px;
+      font-size: 13.5px;
+      border-left: 1px solid var(--rule);
+      padding-left: 0;
+    }
+    .toc ol { list-style: none; margin: 0; padding: 0; }
+    .toc li { margin: 0; }
+    .toc a {
+      display: block;
+      padding: 5px 0 5px 14px;
+      margin-left: -1px;
+      border-left: 2px solid transparent;
+      color: var(--ink-soft);
+      text-decoration: none;
+    }
+    .toc a:hover, .toc a:focus-visible { color: var(--accent); border-left-color: var(--accent); }
+    .toc .sub a { padding-left: 28px; font-size: 12.5px; color: var(--ink-faint); }
+  }
+  .toc-title {
+    font-family: "IBM Plex Mono", ui-monospace, monospace;
+    font-size: 10.5px;
+    letter-spacing: 0.13em;
+    text-transform: uppercase;
+    color: var(--ink-faint);
+    padding: 0 0 10px 14px;
+  }
+
+  /* ---------- sections ---------- */
+  section { margin-bottom: 52px; scroll-margin-top: 24px; }
+  h2 {
+    font-family: "Saira Condensed", "Arial Narrow", sans-serif;
+    font-weight: 600;
+    font-size: 29px;
+    line-height: 1.15;
+    margin: 0 0 4px;
+    letter-spacing: 0.005em;
+    display: flex;
+    gap: 12px;
+    align-items: baseline;
+  }
+  h2 .num {
+    font-family: "IBM Plex Mono", ui-monospace, monospace;
+    font-size: 14px;
+    font-weight: 500;
+    color: var(--accent);
+    flex: none;
+  }
+  h2 + .lede {
+    color: var(--ink-soft);
+    margin: 0 0 22px;
+    max-width: 66ch;
+  }
+  h3 {
+    font-family: "Saira Condensed", "Arial Narrow", sans-serif;
+    font-weight: 600;
+    font-size: 20px;
+    margin: 32px 0 8px;
+    letter-spacing: 0.008em;
+    display: flex;
+    gap: 10px;
+    align-items: baseline;
+  }
+  h3 .num {
+    font-family: "IBM Plex Mono", ui-monospace, monospace;
+    font-size: 12.5px;
+    color: var(--accent);
+    flex: none;
+  }
+  p { max-width: 68ch; margin: 0 0 14px; }
+  ul, ol { max-width: 68ch; padding-left: 20px; margin: 0 0 16px; }
+  li { margin-bottom: 6px; }
+  li::marker { color: var(--ink-faint); }
+  strong { font-weight: 600; }
+  code {
+    font-family: "IBM Plex Mono", ui-monospace, monospace;
+    font-size: 0.875em;
+    background: var(--surface-2);
+    border: 1px solid var(--rule-soft);
+    border-radius: 2px;
+    padding: 0.1em 0.34em;
+  }
+  a { color: var(--accent); text-decoration-thickness: 1px; text-underline-offset: 2px; }
+  a:focus-visible, button:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+
+  /* ---------- verification chips: encode evidence strength ---------- */
+  .chip {
+    display: inline-block;
+    font-family: "IBM Plex Mono", ui-monospace, monospace;
+    font-size: 10px;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    padding: 1.5px 6px;
+    border-radius: 2px;
+    vertical-align: 0.08em;
+    white-space: nowrap;
+  }
+  .chip-v { background: var(--ok-wash); color: var(--ok); border: 1px solid color-mix(in srgb, var(--ok) 34%, transparent); }
+  .chip-q { background: var(--warn-wash); color: var(--warn); border: 1px solid color-mix(in srgb, var(--warn) 34%, transparent); }
+
+  /* ---------- tables ---------- */
+  .tablewrap {
+    overflow-x: auto;
+    border: 1px solid var(--rule);
+    border-radius: 3px;
+    margin: 0 0 22px;
+    background: var(--surface);
+  }
+  table {
+    border-collapse: collapse;
+    width: 100%;
+    font-size: 13.5px;
+  }
+  th, td {
+    text-align: left;
+    padding: 9px 13px;
+    border-bottom: 1px solid var(--rule-soft);
+    vertical-align: top;
+  }
+  thead th {
+    font-family: "IBM Plex Mono", ui-monospace, monospace;
+    font-size: 10.5px;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: var(--ink-faint);
+    background: var(--surface-2);
+    border-bottom: 1px solid var(--rule);
+    white-space: nowrap;
+  }
+  tbody tr:last-child td { border-bottom: none; }
+  td.mono, th.mono { font-family: "IBM Plex Mono", ui-monospace, monospace; white-space: nowrap; }
+  .num, .num td { font-variant-numeric: tabular-nums; }
+  .num td { font-family: "IBM Plex Mono", ui-monospace, monospace; }
+
+  /* ---------- callouts ---------- */
+  .callout {
+    background: var(--surface);
+    border: 1px solid var(--rule);
+    border-left: 3px solid var(--accent);
+    border-radius: 3px;
+    padding: 16px 20px;
+    margin: 0 0 22px;
+  }
+  .callout p:last-child { margin-bottom: 0; }
+  .callout .label {
+    font-family: "IBM Plex Mono", ui-monospace, monospace;
+    font-size: 10.5px;
+    letter-spacing: 0.11em;
+    text-transform: uppercase;
+    color: var(--accent);
+    display: block;
+    margin-bottom: 7px;
+  }
+  .callout.warn { border-left-color: var(--warn); }
+  .callout.warn .label { color: var(--warn); }
+
+  /* ---------- the device panel: what a player actually sees ---------- */
+  .panel {
+    background: var(--panel-ground);
+    border: 1px solid var(--panel-rule);
+    border-radius: 3px;
+    padding: 18px 20px;
+    margin: 0 0 22px;
+    font-family: "IBM Plex Mono", ui-monospace, monospace;
+    font-size: 13px;
+    line-height: 1.9;
+    overflow-x: auto;
+  }
+  .panel .cap {
+    font-size: 10.5px;
+    letter-spacing: 0.11em;
+    text-transform: uppercase;
+    color: var(--panel-dim);
+    display: block;
+    margin-bottom: 10px;
+    line-height: 1.4;
+  }
+  .panel .row { color: var(--panel-ink); white-space: pre; }
+  .panel .row .k { color: var(--panel-accent); }
+  .panel .row .s { color: var(--panel-dim); }
+  .panel .note { color: var(--panel-dim); font-size: 12px; white-space: pre; }
+
+  /* ---------- state chips grid ---------- */
+  .states {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(196px, 1fr));
+    gap: 1px;
+    background: var(--rule);
+    border: 1px solid var(--rule);
+    border-radius: 3px;
+    margin: 0 0 22px;
+    overflow: hidden;
+  }
+  .states > div {
+    background: var(--surface);
+    padding: 13px 15px;
+  }
+  .states .code-out {
+    font-family: "IBM Plex Mono", ui-monospace, monospace;
+    font-size: 14px;
+    color: var(--accent);
+    display: block;
+    margin-bottom: 4px;
+  }
+  .states .desc { font-size: 12.5px; color: var(--ink-soft); }
+
+  /* ---------- rule list for "don't" ---------- */
+  .stoplist { list-style: none; padding: 0; max-width: 68ch; }
+  .stoplist li {
+    padding-left: 26px;
+    position: relative;
+    margin-bottom: 10px;
+  }
+  .stoplist li::before {
+    content: "\2715";
+    position: absolute;
+    left: 0;
+    top: 0;
+    color: var(--warn);
+    font-size: 12px;
+    font-family: "IBM Plex Mono", ui-monospace, monospace;
+  }
+  .checklist { list-style: none; padding: 0; max-width: 68ch; }
+  .checklist li { padding-left: 26px; position: relative; margin-bottom: 11px; }
+  .checklist li::before {
+    content: "\2192";
+    position: absolute;
+    left: 0;
+    color: var(--accent);
+    font-family: "IBM Plex Mono", ui-monospace, monospace;
+  }
+
+  footer {
+    border-top: 1px solid var(--rule);
+    margin-top: 64px;
+    padding-top: 18px;
+    font-family: "IBM Plex Mono", ui-monospace, monospace;
+    font-size: 11.5px;
+    color: var(--ink-faint);
+    line-height: 1.8;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    * { animation: none !important; transition: none !important; }
+  }
+</style>
+
+<div class="wrap">
+
+  <header class="masthead">
+    <p class="eyebrow">l4d2_ffvii_makoreactor · SourceMod · 交接设计稿</p>
+    <h1>Mako Materia HUD</h1>
+    <p class="standfirst">在 L4D2 的 FFVII Mako Reactor 复刻图上，做一块 ZE 风格的神器面板：谁拿着哪块魔晶石、还剩几次、冷却多久、护盾还剩多少。</p>
+    <dl class="meta">
+      <div><dt>目标地图</dt><dd>l4d2_ffvii_makoreactor</dd></div>
+      <div><dt>运行面</dt><dd>L4D2 · SourceMod</dd></div>
+      <div><dt>形态</dt><dd>纯观察型单插件</dd></div>
+      <div><dt>依据</dt><dd>BSP entity lump · VScript · VMF</dd></div>
+    </dl>
+  </header>
+
+  <div class="shell">
+    <nav class="toc" aria-label="目录">
+      <div class="toc-title">目录</div>
+      <ol>
+        <li><a href="#s1">1 先判断是否需要自己写</a></li>
+        <li><a href="#s2">2 已确证的地图事实</a></li>
+        <li class="sub"><a href="#s21">2.1 八种魔晶石与编号</a></li>
+        <li class="sub"><a href="#s22">2.2 拾取与归属（关键坑）</a></li>
+        <li class="sub"><a href="#s23">2.3 施法与冷却</a></li>
+        <li class="sub"><a href="#s24">2.4 Thunder 充能制</a></li>
+        <li class="sub"><a href="#s25">2.5 Shield 余量</a></li>
+        <li class="sub"><a href="#s26">2.6 等级</a></li>
+        <li><a href="#s3">3 插件设计</a></li>
+        <li class="sub"><a href="#s31">3.1 结构与 Hook 面</a></li>
+        <li class="sub"><a href="#s32">3.2 状态模型</a></li>
+        <li class="sub"><a href="#s33">3.3 事件 → 状态转移</a></li>
+        <li class="sub"><a href="#s34">3.4 状态字符串</a></li>
+        <li class="sub"><a href="#s35">3.5 HUD 渲染与分页</a></li>
+        <li class="sub"><a href="#s36">3.6 容错</a></li>
+        <li><a href="#s4">4 必须实测的开放问题</a></li>
+        <li><a href="#s5">5 不做的事</a></li>
+        <li><a href="#s6">6 交付与验证</a></li>
+      </ol>
+    </nav>
+
+    <main>
+
+      <p style="max-width:68ch;color:var(--ink-soft);margin-bottom:26px;font-size:14.5px;">
+        全文的事实陈述带证据标记：<span class="chip chip-v">Verified</span> 来自 BSP 实体块、地图 VScript 或反编译 VMF 的直接读取；
+        <span class="chip chip-q">Verify</span> 是必须在运行中的游戏里实测确认的推断。请勿把 <span class="chip chip-q">Verify</span> 当结论用。
+      </p>
+
+      <!-- ================= 1 ================= -->
+      <section id="s1">
+        <h2><span class="num">01</span>先判断是否需要自己写</h2>
+        <p class="lede">在动手写代码之前，实现者应该先花半小时验证现成方案能否直接吃下这套结构。这一步做对了，整份文档可能就只剩参考价值。</p>
+
+        <p>ZK 生态的标准神器 HUD 是 EntWatch-4（<span class="mono">srcdslab/sm-plugin-entwatch-4</span>）。它有两代配置形态，其中新一代和本图结构相当接近：</p>
+
+        <div class="tablewrap">
+          <table>
+            <thead>
+              <tr><th>形态</th><th class="mono">路径</th><th>item 建模方式</th><th>与本图的距离</th></tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td>旧</td>
+                <td class="mono">configs/entwatch/&lt;game&gt;/*.cfg</td>
+                <td>item = 武器 hammerid + buttons{hammerid,type,mode,maxuses,cooldown}</td>
+                <td>本图没有"神器武器"，不匹配</td>
+              </tr>
+              <tr>
+                <td>新</td>
+                <td class="mono">configs/entwatch/maps/*.cfg</td>
+                <td>item = <span class="mono">buttonclass</span> + <span class="mono">filtername</span> + <span class="mono">pt_spawner</span> + mode/maxuses/cooldown</td>
+                <td>和"拾取 trigger + 施法 button + point_template 挂件"几乎一一对应</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+
+        <p>EntWatch-4 只依赖 sdktools 的 entity output 与 SDKHooks，L4D2 两者都有。<strong>所以第一步是在本机 L4D2 上装 EntWatch-4，把新形态配置喂给它试跑。</strong>能跑通就配置化收工；不能跑通，再按下文自写，并且此时你已经通过实验知道了哪些 hook 拿不到数据——这比先写状态机再去猜要快得多。</p>
+      </section>
+
+      <!-- ================= 2 ================= -->
+      <section id="s2">
+        <h2><span class="num">02</span>已确证的地图事实</h2>
+        <p class="lede">以下全部来自对地图文件的直接读取，不是推测。来源与取证方式：workshop 包 <span class="mono">1794251408.vpk</span> 内的 <span class="mono">maps/l4d2_ffvii_makoreactor.bsp</span>（VBSP v21，mapRevision 7002）；VScript 在 <span class="mono">scripts/vscripts/ffvii_makoreactor/</span>；实体清单由 BSP entity lump 解出后与 bspsrc 反编译的 VMF 交叉核对。</p>
+
+        <div class="callout">
+          <span class="label">取证注意</span>
+          <p>CS:S 自带的 <span class="mono">vpk.exe</span> 解这张 L4D2 BSP 会得到错误字节（文件头不是 <span class="mono">VBSP</span>，CRC 与包内记录不符）。实现者若要自己取证，需要按 VPK v1 目录树直接读条目偏移，或用 64 位版 vpk 工具；不要直接用旧 vpk.exe 的结果做反编译，会得到"文件损坏"的假结论。</p>
+        </div>
+
+        <h3 id="s21"><span class="num">2.1</span>八种魔晶石与编号</h3>
+        <p>权威顺序来自 <span class="mono">materia_assignation.nut</span> 的 <span class="mono">NamesArr</span> 与 <span class="mono">EntSpwnArr</span> 两个数组，编号 1–8 与各处 <span class="mono">InitializePickMateria(N)</span> 实参一致。<span class="chip chip-v">Verified</span></p>
+
+        <div class="tablewrap">
+          <table class="num">
+            <thead>
+              <tr><th>#</th><th class="mono">Materia</th><th class="mono">carrier 名</th><th class="mono">拾取 trigger</th><th class="mono">施法 button</th><th class="mono">tier relay</th></tr>
+            </thead>
+            <tbody>
+              <tr><td>1</td><td class="mono">Fire</td><td class="mono">CarrierFire</td><td class="mono">M_Fire_Trigger</td><td class="mono">M_Fire_Button</td><td class="mono">M_Fire_Logic_T1..T3</td></tr>
+              <tr><td>2</td><td class="mono">Ice</td><td class="mono">CarrierIce</td><td class="mono">M_Ice_Trigger</td><td class="mono">M_Ice_Button</td><td class="mono">M_Ice_Logic_T1..T3</td></tr>
+              <tr><td>3</td><td class="mono">Heal</td><td class="mono">CarrierHeal</td><td class="mono">M_Heal_Trigger</td><td class="mono">M_Heal_Button</td><td class="mono">M_Heal_Logic_T1..T3</td></tr>
+              <tr><td>4</td><td class="mono">Thunder</td><td class="mono">CarrierThunder</td><td class="mono">M_Thunder_Trigger</td><td class="mono">M_Thunder_Button</td><td class="mono">—（充能制，见 2.4）</td></tr>
+              <tr><td>5</td><td class="mono">Shield</td><td class="mono">CarrierShield</td><td class="mono">M_Shield_Trigger</td><td class="mono">M_Shield_Button</td><td class="mono">M_Shield_Logic_T1..T3</td></tr>
+              <tr><td>6</td><td class="mono">Haste</td><td class="mono">CarrierHaste</td><td class="mono">M_Haste_Trigger</td><td class="mono">M_Haste_Button</td><td class="mono">—（固定 120 s）</td></tr>
+              <tr><td>7</td><td class="mono">Void</td><td class="mono">CarrierVoid</td><td class="mono">M_Void_Trigger</td><td class="mono">M_Void_Button</td><td class="mono">—（固定 110 s）</td></tr>
+              <tr><td>8</td><td class="mono">Ultima</td><td class="mono">CarrierUltima</td><td class="mono">M_Ultima_Trigger</td><td class="mono">M_Ultima_Button</td><td class="mono">—（一次性）</td></tr>
+            </tbody>
+          </table>
+        </div>
+
+        <p>每个 Materia 还各有一个 <span class="mono">point_template</span>（<span class="mono">M_&lt;X&gt;_ParentSpwn</span>）与一个 <span class="mono">logic_script</span>（<span class="mono">M_&lt;X&gt;_ParentScr</span>，跑 <span class="mono">materia_parent.nut</span> 的 <span class="mono">Think()</span>）用来把挂件跟随到玩家身上。<span class="chip chip-v">Verified</span></p>
+
+        <h3 id="s22"><span class="num">2.2</span>拾取与归属（关键坑）</h3>
+        <p>每个 <span class="mono">M_&lt;X&gt;_Trigger</span> 是 <span class="mono">trigger_multiple</span>，过滤器 <span class="mono">MateriaFilter</span> 是 <span class="mono">filter_activator_name</span>，目标名 <span class="mono">SurvivorHuman</span>。<strong>所以只有人类幸存者能拿，bot 被过滤掉</strong>——HUD 天然只需面对人类。<span class="chip chip-v">Verified</span></p>
+
+        <p>触碰时地图的 I/O 链：</p>
+        <ul>
+          <li><span class="mono">OnStartTouch</span>（delay 0）→ <span class="mono">InitializePickMateria(N)</span>：把编号写进玩家脚本域的 <span class="mono">PretendMateria</span>。</li>
+          <li><span class="mono">OnStartTouch</span>（delay 0.01）→ <span class="mono">TryParentMateria(N)</span>：找到第一个 <span class="mono">PretendMateria == N</span> 且 <span class="mono">HasMateria == false</span> 的幸存者，把该玩家 <span class="mono">targetname</span> 改成 <span class="mono">Carrier&lt;X&gt;</span>；<strong>0.25 秒后</strong>再改成通用的 <span class="mono">MateriaCarrier</span>；然后 <span class="mono">ForceSpawn</span> 对应的 ParentSpwn；置 <span class="mono">HasMateria = true</span>；<strong>break</strong>（一人一份）。</li>
+        </ul>
+
+        <div class="callout warn">
+          <span class="label">这是最容易写错的一处</span>
+          <p><strong>不要用玩家 <span class="mono">m_iName</span> 做持有人来源。</strong>写成 <span class="mono">CarrierFire</span> 的窗口只有约 0.25 秒，之后统一变 <span class="mono">MateriaCarrier</span>，而这个名字不携带"哪一块"。更麻烦的是地图侧还有重命名循环：<span class="mono">Button_master</span> 的 OnPressed 会启用 <span class="mono">Survivor_renamer_loop</span>，对应 <span class="mono">RenameSurvivors()</span> 把非 carrier 的人类刷成 <span class="mono">SurvivorHuman</span>，bot 刷成 <span class="mono">SurvivorBot</span>。</p>
+          <p>可靠做法是<strong>用"触碰了哪一个 trigger"来归属</strong>：trigger 本身是按 Materia 分的，<span class="mono">caller</span> 的 targetname 决定是哪一块，<span class="mono">activator</span> 就是持有人。名字只能当辅助校验。</p>
+        </div>
+
+        <h3 id="s23"><span class="num">2.3</span>施法与冷却</h3>
+        <p><span class="mono">M_&lt;X&gt;_Button</span> 是 <span class="mono">func_button_timed</span>，<span class="mono">use_time 1.5</span>（Ultima 是 2.0）。<strong>OnTimeUp 才是"施法完成"的信号</strong>，不是按下的瞬间——玩家中途松手不会触发。<span class="chip chip-v">Verified</span></p>
+
+        <div class="tablewrap">
+          <table class="num">
+            <thead>
+              <tr><th class="mono">Materia</th><th>T1</th><th>T2</th><th>T3</th><th>冷却写在哪</th></tr>
+            </thead>
+            <tbody>
+              <tr><td class="mono">Fire</td><td>70</td><td>110</td><td>150</td><td class="mono">M_Fire_Logic_Tn OnTrigger → M_Fire_Button Enable &lt;delay&gt;</td></tr>
+              <tr><td class="mono">Ice</td><td>60</td><td>90</td><td>120</td><td class="mono">M_Ice_Logic_Tn OnTrigger → M_Ice_Button Enable</td></tr>
+              <tr><td class="mono">Heal</td><td>90</td><td>150</td><td>210</td><td class="mono">M_Heal_Logic_Tn OnTrigger → M_Heal_Button Enable</td></tr>
+              <tr><td class="mono">Shield</td><td>90</td><td>150</td><td>180</td><td class="mono">M_Shield_Logic_Tn OnTrigger → M_Shield_Button Enable；同时置 ShieldCount</td></tr>
+              <tr><td class="mono">Haste</td><td colspan="3">固定 120</td><td class="mono">OnTimeUp → !self Enable 120</td></tr>
+              <tr><td class="mono">Void</td><td colspan="3">固定 110</td><td class="mono">M_Void_Logic OnTrigger → M_Void_Button Enable 110</td></tr>
+              <tr><td class="mono">Ultima</td><td colspan="3">一次性</td><td class="mono">OnTimeUp → !self Kill 1；按钮自毁，无法再用</td></tr>
+            </tbody>
+          </table>
+        </div>
+
+        <p>几个附带细节：Ultima 的 <span class="mono">use_sub_string</span> 就写着 "Only 1 use, do it wisely!!"，且 OnTimeUp 里调 <span class="mono">FreeUser()</span> 释放持有权，让该玩家可以再去拿别的。Void 的效果持续约 15 秒（<span class="mono">M_Void_Loop</span> Enable 后 14.9 秒 Disable），但按钮 110 秒才回来。Haste 的 OnTimeUp 触发 <span class="mono">MHasteSpeed()</span> 并播 5 秒特效。<span class="chip chip-v">Verified</span></p>
+
+        <h3 id="s24"><span class="num">2.4</span>Thunder 是充能制，不是冷却制</h3>
+        <p>这一块和其他七种机制完全不同，HUD 必须单独处理。<span class="chip chip-v">Verified</span></p>
+        <ul>
+          <li><span class="mono">M_Thunder_ChargCount</span> 是 <span class="mono">math_counter</span>，<span class="mono">startvalue 3</span>、<span class="mono">max 3</span>。OnHitMax 关掉再生计时器，OnHitMin 关掉按钮。</li>
+          <li><span class="mono">M_Thunder_Regeneration</span> 是 <span class="mono">logic_timer</span>，<span class="mono">RefireTime 50</span>：每 50 秒 <span class="mono">Add 1</span> 并重新 Enable 按钮。</li>
+          <li>每次施法：<span class="mono">M_Thunder_logic_0N</span> 的 OnTrigger <span class="mono">Subtract 1</span>（1/2/3 对应三档效果）。</li>
+          <li><strong>上限会随等级变</strong>：<span class="mono">MateriaMasterCase</span> 的 OnCase01 做 <span class="mono">SetHitMax 1</span> + <span class="mono">SetValueNoFire 1</span>，OnCase02 做 <span class="mono">SetHitMin 1</span>。</li>
+        </ul>
+        <p>结论：HUD 必须实时读 <span class="mono">m_flMin</span> / <span class="mono">m_flMax</span> / <span class="mono">m_OutValue</span> 算当前值和上限，<strong>绝不能把 3 写死</strong>。</p>
+
+        <h3 id="s25"><span class="num">2.5</span>Shield 余量：唯一不能直接读的状态</h3>
+        <p><span class="mono">ShieldCount</span> 是 <span class="mono">materia_core.nut</span> 里的 VScript 全局变量。<strong>SourceMod 没有运行时读 Squirrel scope 的通道</strong>，也绝对不要去猜内存偏移读它。但好消息是：三条变更路径全部经过地图自己的 I/O，可以完整镜像。<span class="chip chip-v">Verified</span></p>
+
+        <div class="tablewrap">
+          <table>
+            <thead>
+              <tr><th>路径</th><th class="mono">实体 / output</th><th>数值</th></tr>
+            </thead>
+            <tbody>
+              <tr><td>初始化</td><td class="mono">M_Shield_Logic_T1 / T2 / T3 · OnTrigger</td><td class="num">25 / 40 / 50</td></tr>
+              <tr><td>自然衰减</td><td class="mono">M_Shield_Timer（logic_timer, RefireTime 1）· OnTimer</td><td class="num">−1 / 秒</td></tr>
+              <tr><td>敌军触碰</td><td class="mono">M_Shield_AntiCI_T1/T2/T3（trigger_multiple, filter_infected）· OnStartTouch</td><td class="num">见下</td></tr>
+              <tr><td>归零</td><td class="mono">M_Shield_Script · OnUser1</td><td class="num">镜像清 0，停表</td></tr>
+            </tbody>
+          </table>
+        </div>
+
+        <p>AntiCI 触发器上的 <span class="mono">MShieldCheck()</span> 分三档，照抄它的规则即可：</p>
+        <ul>
+          <li><span class="mono">activator</span> 类名是 <span class="mono">infected</span>（普通僵尸）→ <strong>−1</strong></li>
+          <li>否则是非幸存者玩家，且 <span class="mono">GetZombieType() &lt; 8</span> → <strong>−3</strong></li>
+          <li>否则（Tank）→ <strong>−6</strong></li>
+        </ul>
+        <p>镜像值降到 0 时显示 <span class="mono">E</span>，并在 <span class="mono">M_Shield_Script</span> 的 OnUser1 上同步关掉 active 标志（脚本归零时会 <span class="mono">FireUser1</span> 到自身，从而禁用计时器并清理 AntiCI 触发器）。</p>
+
+        <h3 id="s26"><span class="num">2.6</span>等级</h3>
+        <p><span class="mono">MateriaMasterCase</span> 是一个 <span class="mono">logic_case</span>，<span class="mono">Case01/02/03</span> 分别启用 T1/T2/T3 的 relay 组。插件 hook 这个 case 的三个 output 就能得到当前等级 1/2/3，用来选 2.3 表里对应那一列的冷却值。<span class="chip chip-v">Verified</span>（case 的 Case 值与 OnCaseNN 输出内容直接可读）<span class="chip chip-q">Verify</span>（是否同一回合只 fire 一次，见 §4）</p>
+      </section>
+
+      <!-- ================= 3 ================= -->
+      <section id="s3">
+        <h2><span class="num">03</span>插件设计</h2>
+        <p class="lede">核心思路一句话：不碰地图，只在地图自己的 I/O 上挂只读观察者，用插件侧的一份镜像状态驱动 HUD。</p>
+
+        <h3 id="s31"><span class="num">3.1</span>结构与 Hook 面</h3>
+        <p>单文件 <span class="mono">l4d2_mako_materia_hud.sp</span>。仅当 <span class="mono">GetCurrentMap() == "l4d2_ffvii_makoreactor"</span> 时工作；其他地图在 <span class="mono">OnMapStart</span> 直接停机，HUD 定时器空转返回，零开销。</p>
+        <p>在 <span class="mono">OnPluginStart</span> 里按"类名 + output 名"全量挂，回调里用 targetname 过滤。这样不依赖任何实例句柄，也不需要提前知道实体索引：</p>
+
+        <div class="tablewrap">
+          <table>
+            <thead>
+              <tr><th class="mono">classname</th><th class="mono">output</th><th>用途</th></tr>
+            </thead>
+            <tbody>
+              <tr><td class="mono">trigger_multiple</td><td class="mono">OnStartTouch</td><td>拾取归属 + Shield 触碰扣值（同一入口，按 caller 名分流）</td></tr>
+              <tr><td class="mono">func_button_timed</td><td class="mono">OnTimeUp</td><td>施法完成：Haste 冷却、Ultima 一次性</td></tr>
+              <tr><td class="mono">logic_relay</td><td class="mono">OnTrigger</td><td>tier relay 冷却、M_Void_Logic、M_Thunder_Entimer</td></tr>
+              <tr><td class="mono">logic_timer</td><td class="mono">OnTimer</td><td>M_Shield_Timer 衰减、M_Thunder_Regeneration 充能</td></tr>
+              <tr><td class="mono">logic_script</td><td class="mono">OnUser1</td><td>M_Shield_Script 归零</td></tr>
+              <tr><td class="mono">logic_case</td><td class="mono">OnCase01/02/03</td><td>MateriaMasterCase → 等级</td></tr>
+              <tr><td class="mono">math_counter</td><td class="mono">OutValue · OnHitMax</td><td>Thunder 充能变化</td></tr>
+            </tbody>
+          </table>
+        </div>
+
+        <p>回调签名一律用返回 <span class="mono">void</span> 的形式（如 <span class="mono">public void Output_X(const char[] output, int caller, int activator, float delay)</span>）。<strong>返回 void 意味着永不拦截</strong>，地图的原行为逐字不变——这是本设计"纯观察"约束的技术保证。</p>
+        <p>另外在 <span class="mono">OnMapStart</span> 之后一帧（<span class="mono">RequestFrame</span>）扫一遍 <span class="mono">MaxClients+1 → GetMaxEntities()</span>，缓存三类 EntRef：各 <span class="mono">M_&lt;X&gt;_Trigger</span>、各 <span class="mono">M_&lt;X&gt;_Button</span>、<span class="mono">M_Thunder_ChargCount</span>。这些引用只用于反查和读 counter，实体自身的 output 仍然靠类名级 hook 接住。若要更省，可以再对这几个已知实例补 <span class="mono">HookSingleEntityOutput</span>。</p>
+
+        <h3 id="s32"><span class="num">3.2</span>状态模型</h3>
+        <p>全部状态都在插件里，大小不超过几百字节：</p>
+        <div class="tablewrap">
+          <table>
+            <thead><tr><th class="mono">变量</th><th>含义</th></tr></thead>
+            <tbody>
+              <tr><td class="mono">holder[8]</td><td>每块 Materia 的持有人 UserID，0 = 无人</td></tr>
+              <tr><td class="mono">clientItem[65]</td><td>每个玩家持有的编号，−1 = 无。用于释放与"一人一份"判定</td></tr>
+              <tr><td class="mono">readyAt[8]</td><td>冷却结束时刻（<span class="mono">GetGameTime()</span> 基准），0 = 无冷却</td></tr>
+              <tr><td class="mono">chargeRef, lastCharge, thunderReadyAt</td><td>Thunder 充能 counter 引用、上次读数、下次 +1 预计时刻</td></tr>
+              <tr><td class="mono">shieldValue, shieldMax, shieldActive</td><td>护盾镜像</td></tr>
+              <tr><td class="mono">level</td><td>1–3，选冷却列</td></tr>
+              <tr><td class="mono">ultimaUsed</td><td>一次性标记</td></tr>
+            </tbody>
+          </table>
+        </div>
+
+        <h3 id="s33"><span class="num">3.3</span>事件 → 状态转移</h3>
+        <div class="tablewrap">
+          <table>
+            <thead><tr><th class="mono">触发</th><th>处理</th></tr></thead>
+            <tbody>
+              <tr><td class="mono">OnStartTouch<br>callee = M_&lt;X&gt;_Trigger</td><td>若 activator 是存活幸存者：记 pending[X] = 该玩家，0.05 s 后复查一次再落定 holder[X]（避开地图 0.01 s 脚本的时序竞争）。若该玩家已持有另一块，先清掉旧块的 holder。</td></tr>
+              <tr><td class="mono">OnStartTouch<br>callee = M_Shield_AntiCI_*</td><td>镜像护盾：<span class="mono">infected</span> → −1；玩家且 class &lt; 8 → −3；否则 → −6</td></tr>
+              <tr><td class="mono">OnTimeUp<br>callee = M_Haste_Button</td><td><span class="mono">readyAt[Haste] = now + 120</span></td></tr>
+              <tr><td class="mono">OnTimeUp<br>callee = M_Ultima_Button</td><td><span class="mono">ultimaUsed = true</span>；<span class="mono">holder[Ultima] = 0</span></td></tr>
+              <tr><td class="mono">OnTrigger<br>callee = M_&lt;X&gt;_Logic_Tn</td><td><span class="mono">readyAt[X] = now + 冷却(X, level)</span>；若 X = Shield，同时把护盾镜像按 tier 置 25/40/50 并 active</td></tr>
+              <tr><td class="mono">OnTrigger<br>callee = M_Void_Logic</td><td><span class="mono">readyAt[Void] = now + 110</span></td></tr>
+              <tr><td class="mono">OnTrigger<br>callee = M_Thunder_Entimer</td><td><span class="mono">thunderReadyAt = now + 50</span></td></tr>
+              <tr><td class="mono">OnTimer<br>callee = M_Shield_Timer</td><td>护盾 active 时 −1</td></tr>
+              <tr><td class="mono">OnTimer<br>callee = M_Thunder_Regeneration</td><td>当前充能 &lt; 上限时 <span class="mono">thunderReadyAt = now + 50</span></td></tr>
+              <tr><td class="mono">OnUser1<br>callee = M_Shield_Script</td><td>护盾镜像清 0，active = false</td></tr>
+              <tr><td class="mono">OnCase0N<br>callee = MateriaMasterCase</td><td><span class="mono">level = N</span></td></tr>
+              <tr><td class="mono">OutValue<br>callee = M_Thunder_ChargCount</td><td>更新 lastCharge；充能减少或增加且未满 → <span class="mono">thunderReadyAt = now + 50</span>；已满 → 清 0</td></tr>
+              <tr><td class="mono">OnHitMax<br>callee = M_Thunder_ChargCount</td><td><span class="mono">thunderReadyAt = 0</span></td></tr>
+              <tr><td class="mono">round_start</td><td>只重置分页游标。<strong>不重置持有人</strong>——理由见下。</td></tr>
+              <tr><td class="mono">player_disconnect</td><td>清该 UserID 名下的 holder</td></tr>
+            </tbody>
+          </table>
+        </div>
+
+        <div class="callout">
+          <span class="label">死亡为什么不清持有人</span>
+          <p><span class="mono">materia_parent.nut</span> 的 <span class="mono">Think()</span> 在玩家 <span class="mono">IsDead() || IsDying()</span> 时只把挂件挪到原点隐藏，<strong>并不清 <span class="mono">PretendMateria</span> / <span class="mono">HasMateria</span></strong>；清空只发生在 <span class="mono">FreeUser()</span>，而它只被 Ultima 的 OnTimeUp 调用。也就是说玩家复活后仍然是持有人，挂件会回来。插件跟着这个语义走：死亡期间继续显示持有人（要不要变灰由实现者定），但不要清。</p>
+        </div>
+
+        <h3 id="s34"><span class="num">3.4</span>状态字符串</h3>
+        <p>行格式照抄 EntWatch-4 <span class="mono">ew4/interface.inc</span> 的原式，注意冒号后有一个空格：<code>"%s [%s]: %N"</code> → 短名、状态、玩家名。多按钮时状态用 <span class="mono">|</span> 连接。<span class="chip chip-v">Verified</span></p>
+
+        <div class="states">
+          <div><span class="code-out">73</span><span class="desc">冷却中，剩余整秒（向上取整）</span></div>
+          <div><span class="code-out">R</span><span class="desc">就绪，没有常驻数值可显示</span></div>
+          <div><span class="code-out">2/3</span><span class="desc">Thunder 充能：当前 / 上限（实时读）</span></div>
+          <div><span class="code-out">2/3|18</span><span class="desc">充能未满，且已知下次 +1 还有 18 秒</span></div>
+          <div><span class="code-out">22/40</span><span class="desc">Shield 余量 / 上限</span></div>
+          <div><span class="code-out">E</span><span class="desc">已用尽：Ultima 施放过，或护盾归零</span></div>
+          <div><span class="code-out">N/A</span><span class="desc">当前没有可用信息</span></div>
+        </div>
+
+        <p>玩家实际看到的画面是这样（<span class="mono">KeyHintText</span>，左侧中上，等宽字体）：</p>
+
+        <div class="panel">
+          <span class="cap">In-game HUD · 仅列已被拾取的条目</span>
+          <span class="row"><span class="k">eriF</span> <span class="s">[</span>73<span class="s">]: </span>阿明</span>
+          <span class="row"><span class="k">dleihS</span> <span class="s">[</span>22/40<span class="s">]: </span>阿杰</span>
+          <span class="row"><span class="k">rednuhT</span> <span class="s">[</span>2/3|18<span class="s">]: </span>小王</span>
+          <span class="row"><span class="k">amitlU</span> <span class="s">[</span>E<span class="s">]: </span>阿强</span>
+          <span class="note">↑ 未拾取的 Materia 不出现在面板上（EntWatch 范式）</span>
+        </div>
+
+        <p>短名按项目惯例用反写拼写（<span class="mono">eriF / ecI / laeH / rednuhT / dleihS / etsaH / dioV / amitlU</span>）。<strong>这是命名约定，不是地图事实</strong>；如果你们服务器另有习惯，以你们的为准，改一张常量表即可。</p>
+
+        <h3 id="s35"><span class="num">3.5</span>HUD 渲染与分页</h3>
+        <p>直接照搬 EntWatch-4 的分页机制，参数一致：</p>
+        <ul>
+          <li>只输出 <span class="mono">holder[X] != 0</span> 的行。</li>
+          <li>缓冲 <span class="mono">pages[8][255]</span>，每页容量 <span class="mono">255 − 8 = 247</span> 字节（尾部 8 字节留给页码信息，与 EntWatch 原式相同）。行长按 <span class="mono">strlen + 1</span> 计（给换行留位）。<strong>按 UTF-8 字节数分页，不是按行数。</strong></li>
+          <li>单行超过整页容量就丢弃该行，不要截断。</li>
+          <li>页数 &gt; 1 时每 5 秒轮换一页；页首加 <code>"%s%d/%d"</code> 前缀（当前页 / 总页数），单页时不加。</li>
+          <li>发送：<span class="mono">StartMessageOne("KeyHintText", client)</span>；protobuf 时 <span class="mono">PbAddString(msg, "hints", text)</span>，否则 <span class="mono">BfWriteByte(msg, 1)</span> + <span class="mono">BfWriteString(msg, text)</span>，最后 <span class="mono">EndMessage()</span>。</li>
+          <li>刷新定时器 1.0 秒；跳过 <span class="mono">IsFakeClient</span>。</li>
+          <li>面板变空时，对之前显示过的客户端补发一次空白串清屏（EntWatch 的做法）。</li>
+          <li><span class="mono">sm_hud</span> 切换显示；持久化可以用 cookie（可选）。</li>
+        </ul>
+        <p>EntWatch 的 3 个槽位（全部 / T / CT）在本图用不上——持有人全是幸存者，单槽就够——但 8 页预算机制保留，因为玩家名长度不可控。</p>
+
+        <h3 id="s36"><span class="num">3.6</span>容错</h3>
+        <ul>
+          <li>地图实体找不到（改图、换版本）→ 安静停机，不要报错刷屏。</li>
+          <li>缓存任何 EntRef 之前先 <span class="mono">IsValidEntity</span> 验活。</li>
+          <li>所有回调都要容错 <span class="mono">caller</span> / <span class="mono">activator</span> 为 −1 或非实体的情况。</li>
+          <li>读 Thunder counter 前用 <span class="mono">HasEntProp</span> 探测 <span class="mono">m_OutValue</span> / <span class="mono">m_flMin</span> / <span class="mono">m_flMax</span>，缺一个就退化成 <span class="mono">N/A</span>。</li>
+        </ul>
+      </section>
+
+      <!-- ================= 4 ================= -->
+      <section id="s4">
+        <h2><span class="num">04</span>必须实测的开放问题</h2>
+        <p class="lede">下面每一条都能在三十分钟内验证完。建议先用一个只有 <span class="mono">HookEntityOutput</span> + <span class="mono">PrintToServer</span> 的打点版插件把这些跑一遍，再写状态机。</p>
+        <ol class="checklist">
+          <li><strong>拾取归属是否成立</strong>：<span class="mono">OnStartTouch</span> 的 <span class="mono">activator</span> 是否稳定为人类幸存者（过滤器是 <span class="mono">MateriaFilter</span>／<span class="mono">SurvivorHuman</span>）。若被过滤的玩家不进回调，改成轮询或改用 <span class="mono">SDKHook_StartTouch</span>。</li>
+          <li><strong>玩家名被反复覆盖</strong>：确认 <span class="mono">Survivor_renamer_loop</span> 的实际影响。结论大概率是"不能用 <span class="mono">m_iName</span> 做长期归属"，但要亲眼看到。</li>
+          <li><strong><span class="mono">func_button_timed</span> 的 OnTimeUp 是否带 activator</strong>：若带，Ultima 释放持有人可以精确定位到按键者；若不带（−1），就按"Ultima 用掉即释放"处理。</li>
+          <li><strong><span class="mono">GetZombieType()</span> 与 <span class="mono">m_zombieClass</span> 的对应</strong>：护盾 −3 / −6 的分界是 <span class="mono">&lt; 8</span>，实测 Tank 是否为 8。</li>
+          <li><strong>等级来源</strong>：<span class="mono">MateriaMasterCase</span> 的 OnCase01/02/03 是否同一回合只 fire 一次；若多次，以最后一次为准。</li>
+          <li><strong>回合语义</strong>：本图是 survival 模式（<span class="mono">scripts/vscripts/survival.nut</span> 与 <span class="mono">l4d2_ffvii_makoreactor_survival.nut</span>）。确认 <span class="mono">round_start</span> 会不会清空地图侧状态；插件按"不清持有人"实现，实测后按需要再改。</li>
+          <li><strong>EntWatch-4 能否直接吃下这套结构</strong>（见 §1）。能，则本插件作废，写配置即可。</li>
+        </ol>
+      </section>
+
+      <!-- ================= 5 ================= -->
+      <section id="s5">
+        <h2><span class="num">05</span>不做的事</h2>
+        <p class="lede">这几条是本次分析里踩过或差点踩进去的坑，写下来防止实现者跑偏。</p>
+        <ul class="stoplist">
+          <li>不写 Squirrel 变量、不新增地图实体、不改 bsp / vpk。运行中的地图 VScript 没有从 SourceMod 侧写入的通道。</li>
+          <li>不猜内存偏移去读 <span class="mono">ShieldCount</span>。它只能靠 I/O 事件镜像。</li>
+          <li>不拦截、不改写任何原 output。回调返回 void，地图行为逐字不变。</li>
+          <li>不把 Thunder 上限写死成 3。等级会改 <span class="mono">m_flMax</span>。</li>
+          <li>不因为玩家死亡就清持有人。地图自己不清。</li>
+          <li>不用 <span class="mono">m_iName</span> 作为长期持有人来源。它只在 0.25 秒窗口内可辨。</li>
+          <li>不假设有"神器武器"。本图的神器是 trigger + button + point_template 的组合，不是双枪或任何武器实体。</li>
+        </ul>
+      </section>
+
+      <!-- ================= 6 ================= -->
+      <section id="s6">
+        <h2><span class="num">06</span>交付与验证</h2>
+        <ul class="checklist">
+          <li><strong>产物</strong>：<span class="mono">addons/sourcemod/scripting/l4d2_mako_materia_hud.sp</span>，编译用 L4D2 自带的 <span class="mono">spcomp.exe</span>（或 64 位版）。只编译，不部署。</li>
+          <li><strong>本地验证</strong>：在 <span class="mono">…\Left 4 Dead 2\left4dead2\addons\sourcemod\</span> 下临时 <span class="mono">sm plugins load</span>，进图逐项确认——8 行都出得来、拾取后出现、冷却倒数、Thunder 充能变化、护盾掉值、Ultima 变 <span class="mono">E</span>、多页轮播正常。</li>
+          <li><strong>顺序建议</strong>：先写打点版把 §4 全部跑完，再写状态机和 HUD。反过来做会多花好几倍时间。</li>
+        </ul>
+      </section>
+
+      <footer>
+        依据文件：1794251408.vpk → maps/l4d2_ffvii_makoreactor.bsp (VBSP v21 / mapRevision 7002)；scripts/vscripts/ffvii_makoreactor/{materia_core,materia_assignation,materia_parent,void_materia}.nut；l4d2_ffvii_makoreactor_survival.nut；bspsrc 反编译 VMF 与 BSP entity lump 交叉核对。<br>
+        参考范式：srcdslab/sm-plugin-entwatch-4 — addons/sourcemod/scripting/ew4/interface.inc。
+      </footer>
+
+    </main>
+  </div>
+</div>
