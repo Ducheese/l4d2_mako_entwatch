@@ -85,6 +85,3 @@ bool g_bUltimaUsed = false;                // 终极魔法是否已被消耗（�
 
 bool g_bSupportedMap = false;              // 是否在目标地图运行
 bool g_bLateLoad = false;                  // 是否为运行中热加载（Late Load）
-bool g_bHudPlaced[2];                      // EMS HUD 两个 slot 是否已 HUDPlace（换图后重置）
-
-

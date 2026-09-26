@@ -128,8 +128,6 @@ void ResetState()
     g_flThunderReadyAt = 0.0;
     g_bUltimaUsed = false;
     g_iLevel = 1;
-    g_bHudPlaced[0] = false;
-    g_bHudPlaced[1] = false;
 }
 
 // ── 缓存地图实体引用 ──────────────────────────────────

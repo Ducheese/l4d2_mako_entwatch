@@ -42,6 +42,8 @@ public void OnPluginStart()
 {
     HookEvent("round_start", Event_RoundStart, EventHookMode_PostNoCopy);
     HookEvent("player_disconnect", Event_PlayerDisconnect, EventHookMode_Pre);
+    HookEvent("bot_player_replace", Event_BotReplace, EventHookMode_Pre);
+    HookEvent("player_bot_replace", Event_BotReplace, EventHookMode_Pre);
 
     RegConsoleCmd("sm_mako_debug",   Command_DebugStatus, "Print Mako Materia HUD debug status");
     RegConsoleCmd("sm_mako_status",  Command_DebugStatus, "Print Mako Materia HUD debug status");

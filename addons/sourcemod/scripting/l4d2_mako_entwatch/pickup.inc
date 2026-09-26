@@ -54,9 +54,9 @@ public Action Timer_CheckPickup(Handle timer, DataPack pack)
     if (GetEntPropString(client, Prop_Data, "m_iName", targetname, sizeof(targetname)) > 0)
     {
         // TryParentMateria 在 0.01s 时将玩家改名为 Carrier<X>，0.25s 后才改成通用的 MateriaCarrier
-        // 如果玩家处于 Carrier<X> 窗口期直接命中；
-        // 若因服务器卡顿调度延迟导致名字已翻转为 MateriaCarrier：
-        // 唯当玩家此前未持有其他神器（或终极已使用）且 pending 匹配时才认可，彻底防范多玩家假阳性
+        // 地图铁律：一人只能持有一件神器（HasMateria == false），不可交换不可丢弃；
+        // 唯有终极魔法(Ultima)自毁后 FreeUser() 允许捡第二件。
+        // canPickup 彻底防范已持神器玩家（常驻名为 MateriaCarrier）路过其他触发器时被误判假阳性
         bool canPickup = (g_iClientItem[client] == -1 || (g_iClientItem[client] == Item_Ultima && g_bUltimaUsed));
         if (StrEqual(targetname, g_sCarrier[item], false)
             || (StrEqual(targetname, "MateriaCarrier", false) && canPickup && g_iPendingItem[client] == item))

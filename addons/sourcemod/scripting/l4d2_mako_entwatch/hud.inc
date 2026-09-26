@@ -24,36 +24,65 @@
 #define MAKO_FLAGS      (HUD_FLAG_ALIGN_LEFT | HUD_FLAG_NOBG | HUD_FLAG_TEXT)
 
 // 每个 slot 独立写，绕过 HUDSetLayout 的函数内部 128 字节局部 buffer
-// （网络 prop 自身也是 128 字节，所以每次写入 < 128 字节即安全）
-static void SlotWrite(int slot, float y, int idx, const char[] text)
+// 必须每次无条件调用 HUDPlace，确保任何时候进入游戏或换回合的客户端都能收到坐标覆盖，
+// 杜绝客户端回退至 hudscriptedmode.res 默认的右上角 (540, 14, 65x21) 引发飞屏与截断。
+static void SlotWrite(int slot, float y, const char[] text)
 {
-    if (!g_bHudPlaced[idx])
-    {
-        HUDPlace(slot, MAKO_X, y, MAKO_W, MAKO_H);
-        g_bHudPlaced[idx] = true;
-    }
+    HUDPlace(slot, MAKO_X, y, MAKO_W, MAKO_H);
     GameRules_SetProp("m_iScriptedHUDFlags", MAKO_FLAGS, _, slot, true);
     GameRules_SetPropString("m_szScriptedHUDStringSet", text, true, slot);
 }
 
-static void SlotClear(int slot, int idx)
+static void SlotClear(int slot)
 {
     GameRules_SetProp("m_iScriptedHUDFlags", HUD_FLAG_NOTVISIBLE, _, slot, true);
     GameRules_SetPropString("m_szScriptedHUDStringSet", "", true, slot);
-    g_bHudPlaced[idx] = false;
 }
 
 void MakoHUD_Enable()
 {
     EnableHUD();
-    g_bHudPlaced[0] = false;
-    g_bHudPlaced[1] = false;
 }
 
 void MakoHUD_Clear()
 {
-    SlotClear(MAKO_SLOT_A, 0);
-    SlotClear(MAKO_SLOT_B, 1);
+    SlotClear(MAKO_SLOT_A);
+    SlotClear(MAKO_SLOT_B);
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// SafeTruncateUtf8：安全截断 UTF-8 字符串到指定字节数，避免破坏多字节序列造成中文乱码
+stock void SafeTruncateUtf8(char[] str, int maxBytes)
+{
+    int len = strlen(str);
+    if (len <= maxBytes)
+        return;
+
+    int i = 0;
+    while (i < len)
+    {
+        int c = str[i] & 0xFF;
+        int charLen = 1;
+        if ((c & 0x80) == 0x00)
+            charLen = 1;
+        else if ((c & 0xE0) == 0xC0)
+            charLen = 2;
+        else if ((c & 0xF0) == 0xE0)
+            charLen = 3;
+        else if ((c & 0xF8) == 0xF0)
+            charLen = 4;
+        else
+            charLen = 1;
+
+        if (i + charLen > maxBytes)
+        {
+            str[i] = '\0';
+            return;
+        }
+        i += charLen;
+    }
+
+    str[maxBytes] = '\0';
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -90,14 +119,14 @@ void ItemState(int item, float now, char[] state, int maxlen)
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Timer_Hud：每秒拆分前 4 / 后 4 推送到两个 slot
-// 单 slot 每行约 22 字节，4 行 ≈ 88 字节，远低于 128 字节上限
+// 单 slot 每行最大不超过 30 字节，4 行 ≤ 112 字节，安全收敛在 128 字节物理上限内
 public Action Timer_Hud(Handle timer)
 {
     if (!g_bSupportedMap)
         return Plugin_Continue;
 
-    // 每个 slot 独立 buffer（< 128 字节安全区间）
-    char textA[120], textB[120];
+    // 每个 slot 独立 buffer（最大 128 字节物理上限）
+    char textA[128], textB[128];
     textA[0] = '\0';
     textB[0] = '\0';
     bool hasA = false, hasB = false;
@@ -112,22 +141,23 @@ public Action Timer_Hud(Handle timer)
             continue;
 
         int client = GetClientOfUserId(userid);
-        if (client <= 0 || !IsClientInGame(client))
+        if (client <= 0 || !IsClientInGame(client) || GetClientTeam(client) != 2)
         {
             g_iHolder[item] = 0;
             continue;
         }
 
-        char line[64], state[32], clientName[24];
+        char line[64], state[32], clientName[32];
         ItemState(item, now, state, sizeof(state));
         GetClientName(client, clientName, sizeof(clientName));
+        SafeTruncateUtf8(clientName, 15);
 
-        FormatEx(line, sizeof(line), "%s [%s]: %s\n", g_sShort[item], state, clientName);
+        FormatEx(line, sizeof(line), "%s[%s] %s\n", g_sShort[item], state, clientName);
 
         // 前 4 个神器（0-3）→ slot A；后 4 个（4-7）→ slot B
         if (item < 4)
         {
-            if (strlen(textA) + strlen(line) < sizeof(textA) - 1)
+            if (strlen(textA) + strlen(line) < sizeof(textA))
             {
                 StrCat(textA, sizeof(textA), line);
                 hasA = true;
@@ -135,7 +165,7 @@ public Action Timer_Hud(Handle timer)
         }
         else
         {
-            if (strlen(textB) + strlen(line) < sizeof(textB) - 1)
+            if (strlen(textB) + strlen(line) < sizeof(textB))
             {
                 StrCat(textB, sizeof(textB), line);
                 hasB = true;
@@ -144,14 +174,14 @@ public Action Timer_Hud(Handle timer)
     }
 
     if (hasA)
-        SlotWrite(MAKO_SLOT_A, MAKO_Y_A, 0, textA);
+        SlotWrite(MAKO_SLOT_A, MAKO_Y_A, textA);
     else
-        SlotClear(MAKO_SLOT_A, 0);
+        SlotClear(MAKO_SLOT_A);
 
     if (hasB)
-        SlotWrite(MAKO_SLOT_B, MAKO_Y_B, 1, textB);
+        SlotWrite(MAKO_SLOT_B, MAKO_Y_B, textB);
     else
-        SlotClear(MAKO_SLOT_B, 1);
+        SlotClear(MAKO_SLOT_B);
 
     return Plugin_Continue;
 }

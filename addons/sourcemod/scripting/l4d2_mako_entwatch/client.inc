@@ -6,7 +6,14 @@
 // ── 事件监听与玩家状态维护 ───────────────────────────
 public void Event_RoundStart(Event event, const char[] name, bool dontBroadcast)
 {
-    // 回合重置（持有者不清空，地图挂件 Think 在死亡/回合过渡不清除 PretendMateria）
+    if (!g_bSupportedMap)
+        return;
+
+    // 回合重开：彻底复位神器归属与CD，清空HUD，重新激活视口并重新绑定新回合实体
+    ResetState();
+    MakoHUD_Clear();
+    MakoHUD_Enable();
+    RequestFrame(Frame_BindMap);
 }
 
 public void Event_PlayerDisconnect(Event event, const char[] name, bool dontBroadcast)
@@ -22,6 +29,38 @@ public void Event_PlayerDisconnect(Event event, const char[] name, bool dontBroa
                 PrintToServer("[MakoEntWatch] Holder %N disconnected, %s lost (destroyed by map)!", client, g_sShort[item]);
             else
                 PrintToServer("[MakoEntWatch] Holder disconnected, %s lost (destroyed by map)!", g_sShort[item]);
+        }
+    }
+}
+
+public void Event_BotReplace(Event event, const char[] name, bool dontBroadcast)
+{
+    int oldId, newId;
+    if (StrEqual(name, "player_bot_replace", false))
+    {
+        oldId = event.GetInt("player");
+        newId = event.GetInt("bot");
+    }
+    else // bot_player_replace
+    {
+        oldId = event.GetInt("bot");
+        newId = event.GetInt("player");
+    }
+
+    // 玩家与 BOT 接管时平滑转移神器持有者映射，防止追踪断裂
+    for (int item = 0; item < ITEM_COUNT; item++)
+    {
+        if (g_iHolder[item] == oldId)
+        {
+            g_iHolder[item] = newId;
+            int oldClient = GetClientOfUserId(oldId);
+            int newClient = GetClientOfUserId(newId);
+            if (oldClient > 0 && oldClient <= MaxClients)
+                g_iClientItem[oldClient] = -1;
+            if (newClient > 0 && newClient <= MaxClients)
+                g_iClientItem[newClient] = item;
+            PrintToServer("[MakoEntWatch] %s transferred during bot takeover (old userid %d -> new userid %d).",
+                g_sShort[item], oldId, newId);
         }
     }
 }
