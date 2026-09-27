@@ -85,3 +85,17 @@ bool g_bUltimaUsed = false;                // 终极魔法是否已被消耗（�
 
 bool g_bSupportedMap = false;              // 是否在目标地图运行
 bool g_bLateLoad = false;                  // 是否为运行中热加载（Late Load）
+
+// HUD 测试状态与硬编码测试名字表（包含中英/全角括号/繁体/空格混排与截断压力样例）
+bool g_bHudTestActive = false;
+char g_sHudTestNames[ITEM_COUNT][32] =
+{
+    "FJH_03",
+    "H-AN",
+    "Ducheese",
+    "惶恐",
+    "ZET",
+    "最后一眼（UNCLE CAI）",
+    "鳴嘏屋",
+    "你干嘛 鸡你太美"
+};

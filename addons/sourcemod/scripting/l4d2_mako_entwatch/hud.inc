@@ -140,17 +140,25 @@ public Action Timer_Hud(Handle timer)
         if (userid == 0)
             continue;
 
-        int client = GetClientOfUserId(userid);
-        if (client <= 0 || !IsClientInGame(client) || GetClientTeam(client) != 2)
+        char clientName[32];
+        if (!g_bHudTestActive)
         {
-            g_iHolder[item] = 0;
-            continue;
+            int client = GetClientOfUserId(userid);
+            if (client <= 0 || !IsClientInGame(client) || GetClientTeam(client) != 2)
+            {
+                g_iHolder[item] = 0;
+                continue;
+            }
+            GetClientName(client, clientName, sizeof(clientName));
         }
+        else
+        {
+            strcopy(clientName, sizeof(clientName), g_sHudTestNames[item]);
+        }
+        SafeTruncateUtf8(clientName, 12);
 
-        char line[64], state[32], clientName[32];
+        char line[64], state[32];
         ItemState(item, now, state, sizeof(state));
-        GetClientName(client, clientName, sizeof(clientName));
-        SafeTruncateUtf8(clientName, 15);
 
         FormatEx(line, sizeof(line), "%s[%s] %s\n", g_sShort[item], state, clientName);
 

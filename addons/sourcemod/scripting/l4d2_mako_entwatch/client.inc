@@ -93,20 +93,20 @@ public Action Command_HudTest(int client, int args)
     }
 
     // 若上一轮测试尚在倒计时，先提示已覆盖
-    if (g_iHudTestUserId != 0)
+    if (g_bHudTestActive)
         PrintToServer("[MakoEntWatch] HUD 测试：覆盖上一轮，重新计时 30s");
 
     // 强制开启 HUD 视口（若本来就不在支持地图则之后 Cleanup 会还原）
     g_bHudTestMapRestore = !g_bSupportedMap;
     g_bSupportedMap = true;
+    g_bHudTestActive = true;
     MakoHUD_Enable();
 
     float now = GetGameTime();
     int userid = GetClientUserId(client);
     g_iHudTestUserId = userid;
 
-    // 给所有 8 种神器设置假持有者（就是执行命令的玩家本人）+ 各自不同的冷却时长
-    // 冷却倒计时差异化，方便看出多行效果
+    // 给所有 8 种神器设置假持有者（使用执行命令的玩家本人 userid 作为占位）+ 各自不同的冷却时长
     int fakeCDs[ITEM_COUNT] = {55, 42, 87, 0, 135, 20, 95, 0};
     for (int item = 0; item < ITEM_COUNT; item++)
     {
@@ -114,7 +114,7 @@ public Action Command_HudTest(int client, int args)
         g_flReadyAt[item] = (fakeCDs[item] > 0) ? (now + float(fakeCDs[item])) : 0.0;
     }
 
-    // 雷电额外设回充倒计时（ItemState 中若 counter 无效会显示 N/A，无所谓）
+    // 雷电额外设回充倒计时
     g_flThunderReadyAt = now + 33.0;
 
     // 终极标记为未使用 → 显示 "R"
@@ -129,6 +129,8 @@ public Action Command_HudTest(int client, int args)
 
 public Action Timer_HudTestCleanup(Handle timer, any data)
 {
+    g_bHudTestActive = false;
+
     // 仅清理由本次测试设置的 holder（精准还原，不干扰真实持有者）
     int userid = g_iHudTestUserId;
     if (userid != 0)
