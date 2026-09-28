@@ -25,18 +25,24 @@
 
 // 每个 slot 独立写，绕过 HUDSetLayout 的函数内部 128 字节局部 buffer
 // 必须每次无条件调用 HUDPlace，确保任何时候进入游戏或换回合的客户端都能收到坐标覆盖，
-// 杜绝客户端回退至 hudscriptedmode.res 默认的右上角 (540, 14, 65x21) 引发飞屏与截断。
+static bool g_bSlotVisible[MAX_SIZE_HUD];
+
 static void SlotWrite(int slot, float y, const char[] text)
 {
     HUDPlace(slot, MAKO_X, y, MAKO_W, MAKO_H);
     GameRules_SetProp("m_iScriptedHUDFlags", MAKO_FLAGS, _, slot, true);
     GameRules_SetPropString("m_szScriptedHUDStringSet", text, true, slot);
+    g_bSlotVisible[slot] = true;
 }
 
-static void SlotClear(int slot)
+static void SlotClear(int slot, bool force = false)
 {
-    GameRules_SetProp("m_iScriptedHUDFlags", HUD_FLAG_NOTVISIBLE, _, slot, true);
-    GameRules_SetPropString("m_szScriptedHUDStringSet", "", true, slot);
+    if (g_bSlotVisible[slot] || force)
+    {
+        GameRules_SetProp("m_iScriptedHUDFlags", HUD_FLAG_NOTVISIBLE, _, slot, true);
+        GameRules_SetPropString("m_szScriptedHUDStringSet", "", true, slot);
+        g_bSlotVisible[slot] = false;
+    }
 }
 
 void MakoHUD_Enable()
@@ -46,8 +52,8 @@ void MakoHUD_Enable()
 
 void MakoHUD_Clear()
 {
-    SlotClear(MAKO_SLOT_A);
-    SlotClear(MAKO_SLOT_B);
+    SlotClear(MAKO_SLOT_A, true);
+    SlotClear(MAKO_SLOT_B, true);
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -118,12 +124,16 @@ void ItemState(int item, float now, char[] state, int maxlen)
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
-// Timer_Hud：每秒拆分前 4 / 后 4 推送到两个 slot
+// MakoHUD_FrameUpdate：每帧推送双 slot，无缝消除低频 Timer 在远端服务器上的频闪
 // 单 slot 每行最大不超过 30 字节，4 行 ≤ 112 字节，安全收敛在 128 字节物理上限内
-public Action Timer_Hud(Handle timer)
+void MakoHUD_FrameUpdate()
 {
     if (!g_bSupportedMap)
-        return Plugin_Continue;
+        return;
+
+    // 每一帧强制保活 EMS HUD 视口
+    // 抵御 Dedicated Server 非突变模式下引擎每 tick 对 m_bChallengeModeActive 的静默擦除
+    EnableHUD();
 
     // 每个 slot 独立 buffer（最大 128 字节物理上限）
     char textA[128], textB[128];
@@ -190,6 +200,4 @@ public Action Timer_Hud(Handle timer)
         SlotWrite(MAKO_SLOT_B, MAKO_Y_B, textB);
     else
         SlotClear(MAKO_SLOT_B);
-
-    return Plugin_Continue;
 }

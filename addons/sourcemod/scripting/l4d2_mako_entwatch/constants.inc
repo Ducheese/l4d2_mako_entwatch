@@ -5,7 +5,6 @@
 
 #define PLUGIN_VERSION "1.0.0"
 #define ITEM_COUNT 8
-#define HUD_INTERVAL 1.0
 #define PICKUP_RETRIES 8
 
 enum

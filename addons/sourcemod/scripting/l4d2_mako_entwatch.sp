@@ -60,9 +60,6 @@ public void OnPluginStart()
     HookEntityOutput("math_counter", "OutValue", Output_ThunderCounter);       // 雷电点数动态
     HookEntityOutput("math_counter", "OnHitMax", Output_ThunderFull);          // 雷电点数动态
 
-    // HUD 更新
-    CreateTimer(HUD_INTERVAL, Timer_Hud, _, TIMER_REPEAT);
-
     // 热加载
     if (g_bLateLoad)
     {
@@ -72,6 +69,14 @@ public void OnPluginStart()
         {
             OnMapStart();
         }
+    }
+}
+
+public void OnGameFrame()
+{
+    if (g_bSupportedMap)
+    {
+        MakoHUD_FrameUpdate();
     }
 }
 
