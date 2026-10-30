@@ -20,6 +20,7 @@
 #include "l4d2_mako_entwatch/entity"
 #include "l4d2_mako_entwatch/materia"
 #include "l4d2_mako_entwatch/pickup"
+#include "l4d2_mako_entwatch/smHud"
 #include "l4d2_mako_entwatch/hud"
 #include "l4d2_mako_entwatch/client"
 
@@ -72,12 +73,10 @@ public void OnPluginStart()
     }
 }
 
-public void OnGameFrame()
+public void OnPluginEnd()
 {
-    if (g_bSupportedMap)
-    {
-        MakoHUD_FrameUpdate();
-    }
+    delete g_hHudTimer;
+    MakoHUD_Clear();
 }
 
 public void OnMapStart()
@@ -87,6 +86,8 @@ public void OnMapStart()
     g_bSupportedMap = (StrContains(map, "makoreactor", false) != -1);
 
     ResetState();
+
+    delete g_hHudTimer;
 
     if (!g_bSupportedMap)
         return;
@@ -101,12 +102,15 @@ public void OnMapStart()
     // 激活 EMS HUD 视口（m_bChallengeModeActive = true），生存模式下必须主动启用
     MakoHUD_Enable();
 
+    // 0.1s 间隔循环定时器轮询 HUD
+    g_hHudTimer = CreateTimer(HUD_INTERVAL, Timer_Hud, _, TIMER_REPEAT);
+
     RequestFrame(Frame_BindMap);
 }
 
 public void OnMapEnd()
 {
-    MakoHUD_Clear();
+    delete g_hHudTimer;
     g_bSupportedMap = false;
 }
 

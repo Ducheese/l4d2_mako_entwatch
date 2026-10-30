@@ -5,6 +5,7 @@
 
 #define PLUGIN_VERSION "1.0.0"
 #define ITEM_COUNT 8
+#define HUD_INTERVAL 0.1
 #define PICKUP_RETRIES 8
 
 enum
@@ -84,6 +85,7 @@ bool g_bUltimaUsed = false;                // 终极魔法是否已被消耗（�
 
 bool g_bSupportedMap = false;              // 是否在目标地图运行
 bool g_bLateLoad = false;                  // 是否为运行中热加载（Late Load）
+Handle g_hHudTimer = null;                 // HUD 轮询定时器句柄（0.1s 间隔）
 
 // HUD 测试状态与硬编码测试名字表（包含中英/全角括号/繁体/空格混排与截断压力样例）
 bool g_bHudTestActive = false;
